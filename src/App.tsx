@@ -40,13 +40,8 @@ function App() {
     "GPS tracking connected",
     "V2V communication active",
   ]);
-
   const [time, setTime] = useState(0);
-
-  // NEW: selected truck
-  const [selectedTruckId, setSelectedTruckId] = useState<string | null>(
-    null,
-  );
+  const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
 
   const fogZone = {
     x: 50,
@@ -211,12 +206,42 @@ function App() {
     (alert) => alert.type === "danger",
   ).length;
 
-  // NEW: selected truck object
+  const reroutingCount = trucks.filter(
+    (truck) => truck.status === "REROUTING",
+  ).length;
+
+  /*
+    SAFETY ANALYTICS
+
+    We start with a perfect score of 100.
+    Active safety problems reduce the score.
+  */
+
+  const safetyScore = Math.max(
+    0,
+    100 -
+      collisionCount * 12 -
+      activeFogTrucks * 4 -
+      reroutingCount * 3,
+  );
+
+  const speedCompliance = Math.max(
+    0,
+    Math.round(
+      ((trucks.length - activeFogTrucks) / trucks.length) * 100,
+    ),
+  );
+
+  const fogExposure = Math.round(
+    (activeFogTrucks / trucks.length) * 100,
+  );
+
+  const v2vRisk = Math.min(100, collisionCount * 15);
+
   const selectedTruck = trucks.find(
     (truck) => truck.id === selectedTruckId,
   );
 
-  // NEW: calculate closest truck
   let closestTruck: Truck | null = null;
   let closestDistance = Infinity;
 
@@ -379,8 +404,6 @@ function App() {
           </div>
 
           <div className="mine-map">
-            <div className="grid-lines"></div>
-
             <div className="road road-one"></div>
             <div className="road road-two"></div>
             <div className="road road-three"></div>
@@ -426,7 +449,6 @@ function App() {
                   top: `${truck.y}%`,
                 }}
                 onClick={() => setSelectedTruckId(truck.id)}
-                title={`Click to inspect ${truck.id}`}
               >
                 <div className="truck-icon">🚚</div>
 
@@ -458,8 +480,6 @@ function App() {
         </section>
 
         <aside className="right-panel">
-          {/* NEW TELEMETRY PANEL */}
-
           <h2>Truck Telemetry</h2>
 
           {!selectedTruck ? (
@@ -556,6 +576,49 @@ function App() {
               </button>
             </div>
           )}
+
+          <h2 className="section-heading">Safety Analytics</h2>
+
+          <div className="safety-score">
+            <div>
+              <span>Overall Safety Score</span>
+              <strong>{safetyScore}/100</strong>
+            </div>
+
+            <div className="score-bar">
+              <div
+                style={{
+                  width: `${safetyScore}%`,
+                }}
+              ></div>
+            </div>
+          </div>
+
+          <div className="analytics-grid">
+            <div className="analytics-card">
+              <span>🚦</span>
+              <strong>{speedCompliance}%</strong>
+              <small>SPEED COMPLIANCE</small>
+            </div>
+
+            <div className="analytics-card">
+              <span>🌫</span>
+              <strong>{fogExposure}%</strong>
+              <small>FOG EXPOSURE</small>
+            </div>
+
+            <div className="analytics-card">
+              <span>🔗</span>
+              <strong>{v2vRisk}%</strong>
+              <small>V2V RISK</small>
+            </div>
+
+            <div className="analytics-card">
+              <span>🔄</span>
+              <strong>{reroutingCount}</strong>
+              <small>REROUTES</small>
+            </div>
+          </div>
 
           <h2 className="section-heading">Active Safety Alerts</h2>
 

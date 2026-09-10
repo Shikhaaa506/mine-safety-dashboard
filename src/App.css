@@ -753,3 +753,78 @@
     padding: 16px;
   }
 }
+
+/* ================================
+   SAFETY ANALYTICS
+================================ */
+
+.safety-score {
+  margin-top: 12px;
+  padding: 13px;
+  background: linear-gradient(145deg, #142238, #101a29);
+  border: 1px solid #2c405d;
+  border-radius: 10px;
+}
+
+.safety-score > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.safety-score span {
+  color: #91a0b4;
+  font-size: 10px;
+}
+
+.safety-score strong {
+  color: #54dc91;
+  font-size: 20px;
+}
+
+.score-bar {
+  height: 7px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #25334a;
+}
+
+.score-bar div {
+  height: 100%;
+  border-radius: 10px;
+  background: #43d98b;
+  transition: width 0.4s ease;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.analytics-card {
+  min-height: 76px;
+  padding: 9px;
+  background: #111c2d;
+  border: 1px solid #24354d;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.analytics-card span {
+  font-size: 15px;
+}
+
+.analytics-card strong {
+  font-size: 17px;
+}
+
+.analytics-card small {
+  color: #718198;
+  font-size: 7px;
+  letter-spacing: 0.3px;
+}
