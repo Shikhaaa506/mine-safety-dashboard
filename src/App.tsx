@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-
-type TruckStatus = "NORMAL" | "FOG" | "WARNING" | "REROUTING";
 
 type Truck = {
   id: string;
   x: number;
   y: number;
-  baseSpeed: number;
   speed: number;
-  direction: number;
-  status: TruckStatus;
+  baseSpeed: number;
+  route: number;
+  status: "NORMAL" | "FOG" | "WARNING" | "REROUTING";
 };
 
 type Alert = {
@@ -20,404 +18,615 @@ type Alert = {
   message: string;
 };
 
-const INITIAL_TRUCKS: Truck[] = [
-  { id: "T01", x: 8, y: 18, baseSpeed: 0.16, speed: 0.16, direction: 1, status: "NORMAL" },
-  { id: "T02", x: 28, y: 18, baseSpeed: 0.13, speed: 0.13, direction: 1, status: "NORMAL" },
-  { id: "T03", x: 75, y: 32, baseSpeed: 0.15, speed: 0.15, direction: -1, status: "NORMAL" },
-  { id: "T04", x: 15, y: 48, baseSpeed: 0.14, speed: 0.14, direction: 1, status: "NORMAL" },
-  { id: "T05", x: 58, y: 48, baseSpeed: 0.17, speed: 0.17, direction: -1, status: "NORMAL" },
-  { id: "T06", x: 35, y: 68, baseSpeed: 0.12, speed: 0.12, direction: 1, status: "NORMAL" },
-  { id: "T07", x: 64, y: 68, baseSpeed: 0.15, speed: 0.15, direction: -1, status: "NORMAL" },
-  { id: "T08", x: 88, y: 82, baseSpeed: 0.13, speed: 0.13, direction: -1, status: "NORMAL" },
+const initialTrucks: Truck[] = [
+  { id: "T01", x: 8, y: 18, speed: 0.32, baseSpeed: 0.32, route: 1, status: "NORMAL" },
+  { id: "T02", x: 25, y: 30, speed: 0.28, baseSpeed: 0.28, route: 1, status: "NORMAL" },
+  { id: "T03", x: 52, y: 42, speed: 0.25, baseSpeed: 0.25, route: 2, status: "NORMAL" },
+  { id: "T04", x: 42, y: 48, speed: 0.3, baseSpeed: 0.3, route: 2, status: "NORMAL" },
+  { id: "T05", x: 15, y: 67, speed: 0.27, baseSpeed: 0.27, route: 3, status: "NORMAL" },
+  { id: "T06", x: 68, y: 76, speed: 0.24, baseSpeed: 0.24, route: 3, status: "NORMAL" },
+  { id: "T07", x: 72, y: 26, speed: 0.31, baseSpeed: 0.31, route: 1, status: "NORMAL" },
+  { id: "T08", x: 78, y: 55, speed: 0.29, baseSpeed: 0.29, route: 2, status: "NORMAL" },
 ];
-
-const FOG_ZONES = [
-  { id: "F1", x: 42, y: 12, width: 24, height: 22, visibility: 58 },
-  { id: "F2", x: 38, y: 42, width: 25, height: 20, visibility: 42 },
-];
-
-function isInsideFog(truck: Truck) {
-  return FOG_ZONES.some(
-    (zone) =>
-      truck.x >= zone.x &&
-      truck.x <= zone.x + zone.width &&
-      truck.y >= zone.y &&
-      truck.y <= zone.y + zone.height,
-  );
-}
 
 function App() {
-  const [trucks, setTrucks] = useState<Truck[]>(INITIAL_TRUCKS);
+  const [trucks, setTrucks] = useState<Truck[]>(initialTrucks);
   const [isRunning, setIsRunning] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
-  const [tick, setTick] = useState(0);
+  const [visibility, setVisibility] = useState(100);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [eventHistory, setEventHistory] = useState<string[]>([
+    "System initialized successfully",
+    "GPS tracking connected",
+    "V2V communication active",
+  ]);
 
-  const fogTrucks = useMemo(
-    () => trucks.filter((truck) => isInsideFog(truck)),
-    [trucks],
+  const [time, setTime] = useState(0);
+
+  // NEW: selected truck
+  const [selectedTruckId, setSelectedTruckId] = useState<string | null>(
+    null,
   );
 
-  const collisionPairs = useMemo(() => {
-    const pairs: string[] = [];
+  const fogZone = {
+    x: 50,
+    y: 45,
+    radius: 18,
+  };
 
-    for (let i = 0; i < trucks.length; i++) {
-      for (let j = i + 1; j < trucks.length; j++) {
-        const dx = trucks[i].x - trucks[j].x;
-        const dy = trucks[i].y - trucks[j].y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+  const addEvent = (message: string) => {
+    setEventHistory((current) => [
+      `${new Date().toLocaleTimeString()} — ${message}`,
+      ...current.slice(0, 7),
+    ]);
+  };
 
-        if (distance < 9) {
-          pairs.push(`${trucks[i].id} ↔ ${trucks[j].id}`);
-        }
-      }
-    }
+  const calculateDistance = (a: Truck, b: Truck) => {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
 
-    return pairs;
-  }, [trucks]);
-
-  const visibility =
-    fogTrucks.length > 0
-      ? Math.min(
-          ...fogTrucks.map((truck) => {
-            const zone = FOG_ZONES.find(
-              (fog) =>
-                truck.x >= fog.x &&
-                truck.x <= fog.x + fog.width &&
-                truck.y >= fog.y &&
-                truck.y <= fog.y + fog.height,
-            );
-            return zone?.visibility ?? 100;
-          }),
-        )
-      : 100;
-
-  const alerts: Alert[] = useMemo(() => {
-    const currentAlerts: Alert[] = [];
-
-    collisionPairs.forEach((pair, index) => {
-      currentAlerts.push({
-        id: index,
-        type: "danger",
-        title: "V2V COLLISION RISK",
-        message: `${pair} are within unsafe distance`,
-      });
-    });
-
-    fogTrucks.forEach((truck, index) => {
-      currentAlerts.push({
-        id: 100 + index,
-        type: "warning",
-        title: "LOW VISIBILITY",
-        message: `${truck.id} entered a fog zone — speed reduced automatically`,
-      });
-    });
-
-    if (currentAlerts.length === 0) {
-      currentAlerts.push({
-        id: 999,
-        type: "info",
-        title: "SYSTEM NORMAL",
-        message: "All haul trucks are operating within safe conditions",
-      });
-    }
-
-    return currentAlerts;
-  }, [collisionPairs, fogTrucks]);
+    return Math.sqrt(dx * dx + dy * dy);
+  };
 
   useEffect(() => {
     if (!isRunning) return;
 
     const timer = setInterval(() => {
-      setTrucks((currentTrucks) =>
-        currentTrucks.map((truck) => {
-          const inFog = isInsideFog(truck);
-          const speed = inFog
-            ? truck.baseSpeed * 0.4 * simulationSpeed
-            : truck.baseSpeed * simulationSpeed;
+      setTime((current) => current + 1);
 
-          let newX = truck.x + speed * truck.direction;
-          let newDirection = truck.direction;
+      setTrucks((currentTrucks) => {
+        const updatedTrucks = currentTrucks.map((truck) => {
+          const dx = truck.x - fogZone.x;
+          const dy = truck.y - fogZone.y;
 
-          if (newX >= 94) {
-            newX = 94;
-            newDirection = -1;
+          const distanceFromFog = Math.sqrt(dx * dx + dy * dy);
+
+          const insideFog = distanceFromFog < fogZone.radius;
+
+          let newSpeed = truck.baseSpeed;
+
+          if (insideFog) {
+            newSpeed = truck.baseSpeed * 0.4;
           }
 
-          if (newX <= 5) {
-            newX = 5;
-            newDirection = 1;
+          let newX = truck.x + newSpeed * simulationSpeed;
+
+          if (newX > 96) {
+            newX = 4;
           }
 
           return {
             ...truck,
             x: newX,
-            speed,
-            direction: newDirection,
-            status: inFog ? "FOG" : "NORMAL",
+            speed: newSpeed,
+            status: insideFog ? "FOG" : "NORMAL",
           };
-        }),
-      );
+        });
 
-      setTick((current) => current + 1);
-    }, 100);
+        const newAlerts: Alert[] = [];
+        const reroutingTrucks = new Set<string>();
+
+        for (let i = 0; i < updatedTrucks.length; i++) {
+          for (let j = i + 1; j < updatedTrucks.length; j++) {
+            const distance = calculateDistance(
+              updatedTrucks[i],
+              updatedTrucks[j],
+            );
+
+            if (distance < 9) {
+              newAlerts.push({
+                id: i * 100 + j,
+                type: "danger",
+                title: "V2V COLLISION RISK",
+                message: `${updatedTrucks[i].id} is too close to ${updatedTrucks[j].id}`,
+              });
+
+              reroutingTrucks.add(updatedTrucks[j].id);
+            }
+          }
+        }
+
+        updatedTrucks.forEach((truck, index) => {
+          const dx = truck.x - fogZone.x;
+          const dy = truck.y - fogZone.y;
+
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < fogZone.radius) {
+            newAlerts.push({
+              id: 1000 + index,
+              type: "warning",
+              title: "LOW VISIBILITY",
+              message: `${truck.id} entered the fog zone — speed reduced`,
+            });
+          }
+        });
+
+        setAlerts(newAlerts);
+
+        return updatedTrucks.map((truck) => {
+          if (reroutingTrucks.has(truck.id)) {
+            return {
+              ...truck,
+              status: "REROUTING",
+              y:
+                truck.y > 50
+                  ? Math.max(10, truck.y - 0.5)
+                  : Math.min(90, truck.y + 0.5),
+            };
+          }
+
+          return truck;
+        });
+      });
+    }, 120);
 
     return () => clearInterval(timer);
   }, [isRunning, simulationSpeed]);
 
+  useEffect(() => {
+    const trucksInFog = trucks.filter((truck) => {
+      const dx = truck.x - fogZone.x;
+      const dy = truck.y - fogZone.y;
+
+      return Math.sqrt(dx * dx + dy * dy) < fogZone.radius;
+    });
+
+    setVisibility(Math.max(45, 100 - trucksInFog.length * 12));
+  }, [trucks]);
+
+  useEffect(() => {
+    if (alerts.length > 0) {
+      const collisionAlert = alerts.find(
+        (alert) => alert.type === "danger",
+      );
+
+      if (collisionAlert) {
+        addEvent(`⚠ ${collisionAlert.message}`);
+      }
+    }
+  }, [alerts]);
+
   const resetSimulation = () => {
-    setTrucks(INITIAL_TRUCKS.map((truck) => ({ ...truck })));
-    setIsRunning(true);
-    setTick(0);
+    setTrucks(initialTrucks);
+    setAlerts([]);
+    setVisibility(100);
+    setTime(0);
+    setSelectedTruckId(null);
+
+    setEventHistory([
+      "Simulation reset",
+      "All trucks returned to initial positions",
+      "Safety monitoring restarted",
+    ]);
+
+    setIsRunning(false);
   };
 
-  const getTruckStatus = (truck: Truck): TruckStatus => {
-    if (collisionPairs.some((pair) => pair.includes(truck.id))) {
-      return "WARNING";
-    }
+  const activeFogTrucks = trucks.filter(
+    (truck) => truck.status === "FOG",
+  ).length;
 
-    if (isInsideFog(truck)) {
-      return "FOG";
-    }
+  const collisionCount = alerts.filter(
+    (alert) => alert.type === "danger",
+  ).length;
 
-    return "NORMAL";
-  };
+  // NEW: selected truck object
+  const selectedTruck = trucks.find(
+    (truck) => truck.id === selectedTruckId,
+  );
+
+  // NEW: calculate closest truck
+  let closestTruck: Truck | null = null;
+  let closestDistance = Infinity;
+
+  if (selectedTruck) {
+    trucks.forEach((truck) => {
+      if (truck.id === selectedTruck.id) return;
+
+      const distance = calculateDistance(selectedTruck, truck);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestTruck = truck;
+      }
+    });
+  }
+
+  const speedKmH = selectedTruck
+    ? Math.round(selectedTruck.speed * 200)
+    : 0;
+
+  const baseSpeedKmH = selectedTruck
+    ? Math.round(selectedTruck.baseSpeed * 200)
+    : 0;
 
   return (
     <div className="dashboard">
       <header className="topbar">
-        <div>
-          <div className="eyebrow">REAL-TIME SAFETY MONITORING</div>
-          <h1>⛏ Mine Safety Control Room</h1>
-          <p>AI-Powered Haul Road Simulation & Vehicle Safety System</p>
+        <div className="brand">
+          <div className="logo">⛏</div>
+
+          <div>
+            <h1>Mine Safety Control Room</h1>
+            <p>
+              AI-Powered Haul Road Monitoring & Safety Simulation
+            </p>
+          </div>
         </div>
 
-        <div className="topbar-right">
-          <div className="live-clock">
-            SIMULATION TICK <strong>{tick}</strong>
+        <div className="top-status">
+          <div className="clock">
+            SIM TIME:{" "}
+            {Math.floor(time / 60)
+              .toString()
+              .padStart(2, "0")}
+            :
+            {(time % 60).toString().padStart(2, "0")}
           </div>
 
-          <div className={`system-status ${isRunning ? "live" : "paused"}`}>
-            <span className="status-dot"></span>
-            {isRunning ? "SYSTEM LIVE" : "SIMULATION PAUSED"}
+          <div className={`system-live ${isRunning ? "" : "paused"}`}>
+            <span></span>
+            {isRunning ? "SYSTEM LIVE" : "PAUSED"}
           </div>
         </div>
       </header>
 
       <main className="dashboard-grid">
-        <aside className="left-column">
-          <section className="panel">
-            <h2>System Status</h2>
+        <aside className="left-panel">
+          <h2>System Status</h2>
 
-            <div className="status-card">
-              <span>📍 GPS Tracking</span>
-              <strong>ONLINE</strong>
+          <div className="system-item">
+            <span>📡 GPS Tracking</span>
+            <strong>ONLINE</strong>
+          </div>
+
+          <div className="system-item">
+            <span>🔗 V2V Communication</span>
+            <strong>ACTIVE</strong>
+          </div>
+
+          <div className="system-item">
+            <span>🛡 Safety Engine</span>
+            <strong>RUNNING</strong>
+          </div>
+
+          <div className="system-item">
+            <span>🌫 Weather Monitor</span>
+            <strong>{visibility}% VISIBILITY</strong>
+          </div>
+
+          <h2 className="section-heading">Live Statistics</h2>
+
+          <div className="stat-grid">
+            <div className="stat-box">
+              <span>🚚</span>
+              <strong>{trucks.length}</strong>
+              <small>ACTIVE TRUCKS</small>
             </div>
 
-            <div className="status-card">
-              <span>📡 V2V Communication</span>
-              <strong>ONLINE</strong>
+            <div className="stat-box">
+              <span>⚠️</span>
+              <strong>{alerts.length}</strong>
+              <small>ACTIVE ALERTS</small>
             </div>
 
-            <div className="status-card">
-              <span>🧠 Safety Engine</span>
-              <strong>ACTIVE</strong>
+            <div className="stat-box">
+              <span>🌫</span>
+              <strong>{visibility}%</strong>
+              <small>VISIBILITY</small>
             </div>
 
-            <div className="status-card">
-              <span>🌫 Fog Monitoring</span>
-              <strong>ACTIVE</strong>
+            <div className="stat-box">
+              <span>🔴</span>
+              <strong>{collisionCount}</strong>
+              <small>COLLISION RISKS</small>
             </div>
-          </section>
+          </div>
 
-          <section className="panel controls-panel">
-            <h2>Simulation Controls</h2>
+          <h2 className="section-heading">Simulation Control</h2>
+
+          <div className="controls">
+            <button
+              className="control-btn primary"
+              onClick={() => setIsRunning(true)}
+            >
+              ▶ Start
+            </button>
 
             <button
-              className="control-button primary"
-              onClick={() => setIsRunning((current) => !current)}
+              className="control-btn"
+              onClick={() => setIsRunning(false)}
             >
-              {isRunning ? "⏸ Pause Simulation" : "▶ Start Simulation"}
+              ⏸ Pause
             </button>
 
-            <button className="control-button" onClick={resetSimulation}>
-              ↻ Reset Simulation
+            <button
+              className="control-btn reset"
+              onClick={resetSimulation}
+            >
+              ↻ Reset
             </button>
+          </div>
 
-            <label className="speed-label">
-              Simulation Speed: {simulationSpeed}x
-              <input
-                type="range"
-                min="0.5"
-                max="2"
-                step="0.5"
-                value={simulationSpeed}
-                onChange={(event) =>
-                  setSimulationSpeed(Number(event.target.value))
-                }
-              />
-            </label>
-          </section>
+          <div className="speed-control">
+            <label>Simulation Speed: {simulationSpeed}x</label>
 
-          <section className="panel">
-            <h2>Live Statistics</h2>
-
-            <div className="big-stat">
-              <span>🚚 Active Trucks</span>
-              <strong>{trucks.length}</strong>
-            </div>
-
-            <div className="big-stat">
-              <span>⚠️ Active Alerts</span>
-              <strong>{alerts.filter((alert) => alert.type !== "info").length}</strong>
-            </div>
-
-            <div className="big-stat">
-              <span>🌫 Visibility</span>
-              <strong>{visibility}%</strong>
-            </div>
-
-            <div className="big-stat">
-              <span>🔄 Rerouting Decisions</span>
-              <strong>{collisionPairs.length}</strong>
-            </div>
-          </section>
+            <input
+              type="range"
+              min="0.5"
+              max="3"
+              step="0.5"
+              value={simulationSpeed}
+              onChange={(e) =>
+                setSimulationSpeed(Number(e.target.value))
+              }
+            />
+          </div>
         </aside>
 
-        <section className="map-panel panel">
+        <section className="map-section">
           <div className="map-header">
             <div>
               <h2>Live Mine Haul Road</h2>
-              <p>Simulated GPS coordinates • Safety monitoring active</p>
+              <p>Click any truck to inspect its telemetry</p>
             </div>
 
-            <div className="map-legend">
-              <span><i className="legend-dot normal"></i>Normal</span>
-              <span><i className="legend-dot fog"></i>Fog</span>
-              <span><i className="legend-dot danger-dot"></i>Collision Risk</span>
+            <div className="map-live">
+              <span></span>
+              LIVE SIMULATION
             </div>
           </div>
 
           <div className="mine-map">
             <div className="grid-lines"></div>
 
-            <div className="road road-a"></div>
-            <div className="road road-b"></div>
-            <div className="road road-c"></div>
-            <div className="road road-d"></div>
+            <div className="road road-one"></div>
+            <div className="road road-two"></div>
+            <div className="road road-three"></div>
 
-            <div className="mine-area mine-area-1">⛏ EXTRACTION ZONE</div>
-            <div className="mine-area mine-area-2">LOADING BAY</div>
+            <div className="mining-area area-one">
+              ⛏ EXCAVATION ZONE
+            </div>
 
-            {FOG_ZONES.map((zone) => (
+            <div className="mining-area area-two">
+              🏭 PROCESSING AREA
+            </div>
+
+            <div
+              className="fog-zone"
+              style={{
+                left: `${fogZone.x}%`,
+                top: `${fogZone.y}%`,
+              }}
+            >
+              <div className="fog-inner">
+                🌫
+                <span>LOW VISIBILITY</span>
+                <small>{visibility}%</small>
+              </div>
+            </div>
+
+            {trucks.map((truck) => (
               <div
-                key={zone.id}
-                className="fog-zone"
+                key={truck.id}
+                className={`truck ${
+                  truck.status === "FOG"
+                    ? "in-fog"
+                    : truck.status === "REROUTING"
+                      ? "rerouting"
+                      : ""
+                } ${
+                  selectedTruckId === truck.id
+                    ? "selected-truck"
+                    : ""
+                }`}
                 style={{
-                  left: `${zone.x}%`,
-                  top: `${zone.y}%`,
-                  width: `${zone.width}%`,
-                  height: `${zone.height}%`,
+                  left: `${truck.x}%`,
+                  top: `${truck.y}%`,
                 }}
+                onClick={() => setSelectedTruckId(truck.id)}
+                title={`Click to inspect ${truck.id}`}
               >
-                <span>🌫</span>
-                <strong>{zone.id}</strong>
-                <small>{zone.visibility}% visibility</small>
+                <div className="truck-icon">🚚</div>
+
+                <div className="truck-info">
+                  <strong>{truck.id}</strong>
+
+                  <span>
+                    {Math.round(truck.x)},{" "}
+                    {Math.round(truck.y)}
+                  </span>
+                </div>
+
+                {truck.status !== "NORMAL" && (
+                  <div className="truck-status">
+                    {truck.status === "FOG"
+                      ? "SLOW"
+                      : "REROUTE"}
+                  </div>
+                )}
               </div>
             ))}
 
-            {trucks.map((truck) => {
-              const status = getTruckStatus(truck);
-
-              return (
-                <div
-                  key={truck.id}
-                  className={`truck truck-${status.toLowerCase()}`}
-                  style={{
-                    left: `${truck.x}%`,
-                    top: `${truck.y}%`,
-                  }}
-                >
-                  <div className="truck-icon">🚚</div>
-
-                  <div className="truck-info">
-                    <strong>{truck.id}</strong>
-                    <span>
-                      {Math.round(truck.x)}, {Math.round(truck.y)}
-                    </span>
-                  </div>
-
-                  <div className="truck-speed">
-                    {Math.round(truck.speed * 250)} km/h
-                  </div>
-                </div>
-              );
-            })}
-
-            <div className="map-corner top-left">GPS GRID: ACTIVE</div>
-            <div className="map-corner bottom-right">
-              VISIBILITY: {visibility}%
+            <div className="map-legend">
+              <span>🚚 Normal Truck</span>
+              <span>🌫 Fog Zone</span>
+              <span>⚠ V2V Warning</span>
             </div>
           </div>
         </section>
 
-        <aside className="right-column">
-          <section className="panel">
-            <h2>Active Alerts</h2>
+        <aside className="right-panel">
+          {/* NEW TELEMETRY PANEL */}
 
-            <div className="alerts-list">
-              {alerts.map((alert) => (
-                <div key={alert.id} className={`alert ${alert.type}`}>
+          <h2>Truck Telemetry</h2>
+
+          {!selectedTruck ? (
+            <div className="telemetry-empty">
+              <div>🚚</div>
+
+              <strong>Select a Truck</strong>
+
+              <p>
+                Click any truck on the map to view its live
+                telemetry.
+              </p>
+            </div>
+          ) : (
+            <div className="telemetry-panel">
+              <div className="telemetry-title">
+                <div className="big-truck">🚚</div>
+
+                <div>
+                  <h3>{selectedTruck.id}</h3>
+                  <span>LIVE VEHICLE DATA</span>
+                </div>
+              </div>
+
+              <div className="telemetry-status">
+                <span>Current Status</span>
+
+                <strong
+                  className={
+                    selectedTruck.status === "NORMAL"
+                      ? "safe"
+                      : selectedTruck.status === "FOG"
+                        ? "warning"
+                        : "danger"
+                  }
+                >
+                  {selectedTruck.status}
+                </strong>
+              </div>
+
+              <div className="telemetry-grid">
+                <div className="telemetry-card">
+                  <small>GPS X</small>
                   <strong>
-                    {alert.type === "danger"
-                      ? "🔴 "
-                      : alert.type === "warning"
-                        ? "🟡 "
-                        : "🟢 "}
+                    {selectedTruck.x.toFixed(1)}
+                  </strong>
+                </div>
+
+                <div className="telemetry-card">
+                  <small>GPS Y</small>
+                  <strong>
+                    {selectedTruck.y.toFixed(1)}
+                  </strong>
+                </div>
+
+                <div className="telemetry-card">
+                  <small>SPEED</small>
+                  <strong>{speedKmH} km/h</strong>
+                </div>
+
+                <div className="telemetry-card">
+                  <small>BASE SPEED</small>
+                  <strong>{baseSpeedKmH} km/h</strong>
+                </div>
+
+                <div className="telemetry-card">
+                  <small>ROUTE</small>
+                  <strong>HAUL-0{selectedTruck.route}</strong>
+                </div>
+
+                <div className="telemetry-card">
+                  <small>VISIBILITY</small>
+                  <strong>{visibility}%</strong>
+                </div>
+              </div>
+
+              <div className="nearest-truck">
+                <span>Nearest Vehicle</span>
+
+                <strong>
+                  {closestTruck
+                    ? `${closestTruck.id} — ${closestDistance.toFixed(
+                        1,
+                      )} units`
+                    : "None"}
+                </strong>
+              </div>
+
+              <button
+                className="clear-selection"
+                onClick={() => setSelectedTruckId(null)}
+              >
+                Clear Selection
+              </button>
+            </div>
+          )}
+
+          <h2 className="section-heading">Active Safety Alerts</h2>
+
+          <div className="alert-count">
+            <span>{alerts.length}</span>
+            <p>ACTIVE ALERTS</p>
+          </div>
+
+          <div className="alerts-list">
+            {alerts.length === 0 ? (
+              <div className="no-alert">
+                🟢
+                <strong>NO CRITICAL ALERTS</strong>
+                <p>All vehicles are operating safely.</p>
+              </div>
+            ) : (
+              alerts.slice(0, 5).map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`alert-card ${alert.type}`}
+                >
+                  <strong>
+                    {alert.type === "danger" ? "🔴" : "🟡"}{" "}
                     {alert.title}
                   </strong>
+
                   <p>{alert.message}</p>
                 </div>
-              ))}
-            </div>
-          </section>
+              ))
+            )}
+          </div>
 
-          <section className="panel">
-            <h2>Safety Decisions</h2>
+          <h2 className="section-heading">
+            AI Safety Decisions
+          </h2>
 
-            {trucks.slice(0, 6).map((truck) => {
-              const status = getTruckStatus(truck);
+          <div className="decision-card">
+            <span>🌫 Fog Response</span>
 
-              let decision = "CONTINUE";
-              if (status === "FOG") decision = "SLOW DOWN";
-              if (status === "WARNING") decision = "REROUTE";
+            <strong>
+              {activeFogTrucks > 0
+                ? `${activeFogTrucks} TRUCK(S) SLOWED`
+                : "NORMAL SPEED"}
+            </strong>
+          </div>
 
-              return (
-                <div className="decision" key={truck.id}>
-                  <div>
-                    <strong>{truck.id}</strong>
-                    <span>{status}</span>
-                  </div>
-                  <b className={decision.toLowerCase().replace(" ", "-")}>
-                    {decision}
-                  </b>
-                </div>
-              );
-            })}
-          </section>
+          <div className="decision-card">
+            <span>🔗 V2V Safety</span>
 
-          <section className="panel truck-table-panel">
-            <h2>Live GPS Data</h2>
+            <strong>
+              {collisionCount > 0
+                ? "REROUTING ACTIVE"
+                : "MONITORING"}
+            </strong>
+          </div>
 
-            <div className="gps-list">
-              {trucks.map((truck) => (
-                <div className="gps-row" key={truck.id}>
-                  <strong>{truck.id}</strong>
-                  <span>X: {truck.x.toFixed(1)}</span>
-                  <span>Y: {truck.y.toFixed(1)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+          <div className="decision-card">
+            <span>🧠 AI Engine</span>
+
+            <strong>ANALYZING ROUTES</strong>
+          </div>
+
+          <h2 className="section-heading">Event History</h2>
+
+          <div className="history">
+            {eventHistory.map((event, index) => (
+              <div className="history-item" key={index}>
+                {event}
+              </div>
+            ))}
+          </div>
         </aside>
       </main>
     </div>
