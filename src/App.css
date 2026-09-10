@@ -1,42 +1,264 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+* {
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0b1120;
+  color: white;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.dashboard {
+  min-height: 100vh;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* TOP BAR */
+
+.topbar {
+  height: 90px;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #111827;
+  border-bottom: 1px solid #263244;
 }
 
-.card {
-  padding: 2em;
+.topbar h1 {
+  margin: 0;
+  font-size: 26px;
 }
 
-.read-the-docs {
-  color: #888;
+.topbar p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+}
+
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+/* MAIN GRID */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 230px 1fr 280px;
+  gap: 20px;
+  padding: 20px;
+}
+
+/* PANELS */
+
+.side-panel,
+.alerts-panel {
+  background: #111827;
+  border: 1px solid #263244;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.side-panel h2,
+.alerts-panel h2 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+/* STATUS */
+
+.status-card,
+.stat-card,
+.decision {
+  background: #1a2435;
+  padding: 13px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.status-card span,
+.stat-card span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.status-card strong {
+  color: #22c55e;
+  font-size: 12px;
+}
+
+.stat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-card strong {
+  font-size: 22px;
+}
+
+.section-title {
+  margin-top: 28px !important;
+}
+
+/* MAP */
+
+.map-section {
+  background: #111827;
+  border: 1px solid #263244;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-header h2 {
+  margin: 0;
+}
+
+.map-header span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.mine-map {
+  position: relative;
+  height: 600px;
+  margin-top: 15px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #182333;
+}
+
+/* ROADS */
+
+.road {
+  position: absolute;
+  height: 70px;
+  background: #374151;
+  border-top: 2px dashed #9ca3af;
+  border-bottom: 2px dashed #9ca3af;
+}
+
+.road-1 {
+  width: 100%;
+  top: 150px;
+  transform: rotate(-8deg);
+}
+
+.road-2 {
+  width: 100%;
+  top: 350px;
+  transform: rotate(10deg);
+}
+
+.road-3 {
+  width: 70%;
+  top: 270px;
+  left: 15%;
+  transform: rotate(90deg);
+}
+
+/* FOG */
+
+.fog-zone {
+  position: absolute;
+  top: 190px;
+  left: 42%;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.25);
+  border: 2px dashed #94a3b8;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #e2e8f0;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+/* TRUCKS */
+
+.truck {
+  position: absolute;
+  font-size: 30px;
+  z-index: 5;
+}
+
+.truck-1 {
+  top: 125px;
+  left: 20%;
+}
+
+.truck-2 {
+  top: 280px;
+  left: 48%;
+}
+
+.truck-3 {
+  top: 390px;
+  left: 72%;
+}
+
+.mine-label {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  color: #94a3b8;
+  font-weight: bold;
+}
+
+/* ALERTS */
+
+.alert {
+  padding: 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.alert p {
+  margin: 7px 0 0;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-left: 4px solid #ef4444;
+}
+
+.warning {
+  background: rgba(234, 179, 8, 0.15);
+  border-left: 4px solid #eab308;
+}
+
+.decision {
+  display: flex;
+  justify-content: space-between;
+}
+
+.decision strong {
+  font-size: 11px;
 }
