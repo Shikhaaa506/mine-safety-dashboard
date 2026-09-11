@@ -828,3 +828,287 @@
   font-size: 7px;
   letter-spacing: 0.3px;
 }
+/* =========================================================
+   SIH EXTENSIONS
+   Weather + Risk + V2V/V2I + Digital Twin
+   ========================================================= */
+
+
+/* ================================
+   WEATHER MONITOR
+================================ */
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.weather-card {
+  min-height: 70px;
+  padding: 9px;
+  background: #111c2d;
+  border: 1px solid #24354d;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.weather-card span {
+  font-size: 14px;
+}
+
+.weather-card strong {
+  font-size: 15px;
+  color: #dce6f3;
+}
+
+.weather-card small {
+  color: #718198;
+  font-size: 7px;
+  letter-spacing: 0.3px;
+}
+
+.visibility-box {
+  margin-top: 8px;
+  padding: 11px;
+  border-radius: 8px;
+  background: linear-gradient(
+    145deg,
+    #17263d,
+    #101a2a
+  );
+  border: 1px solid #2c405d;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.visibility-box span {
+  color: #8d9caf;
+  font-size: 9px;
+}
+
+.visibility-box strong {
+  font-size: 22px;
+  color: #e8eef7;
+}
+
+.visibility-box small {
+  color: #718198;
+  font-size: 8px;
+}
+
+
+/* ================================
+   COLLISION RISK PANEL
+================================ */
+
+.risk-panel {
+  margin-top: 9px;
+  padding: 11px;
+  border-radius: 9px;
+  background: #111c2d;
+  border: 1px solid #263852;
+}
+
+.risk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.risk-header span {
+  color: #8c9aae;
+  font-size: 10px;
+}
+
+.risk-header strong {
+  font-size: 20px;
+}
+
+.risk-panel.low .risk-header strong {
+  color: #4dde91;
+}
+
+.risk-panel.medium .risk-header strong {
+  color: #eab308;
+}
+
+.risk-panel.high .risk-header strong {
+  color: #ef4444;
+}
+
+.risk-bar {
+  height: 7px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #25334a;
+}
+
+.risk-bar div {
+  height: 100%;
+  border-radius: 8px;
+  background: #ef4444;
+  transition: width 0.3s ease;
+}
+
+.risk-panel small {
+  display: block;
+  margin-top: 6px;
+  color: #8291a5;
+  font-size: 8px;
+}
+
+
+/* ================================
+   V2V / V2I COMMUNICATION
+================================ */
+
+.communication-card {
+  margin-top: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: rgba(91, 165, 255, 0.07);
+  border: 1px solid rgba(91, 165, 255, 0.22);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.communication-card span {
+  color: #8c9aae;
+  font-size: 9px;
+}
+
+.communication-card strong {
+  color: #62a9ff;
+  font-size: 8px;
+  text-align: right;
+}
+
+
+/* ================================
+   RISK SUMMARY
+================================ */
+
+.risk-summary {
+  margin-top: 9px;
+  padding: 11px;
+  border-radius: 8px;
+  background: #111c2d;
+  border: 1px solid #263852;
+}
+
+.risk-summary > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.risk-summary span {
+  color: #8d9caf;
+  font-size: 10px;
+}
+
+.risk-summary strong {
+  font-size: 11px;
+}
+
+.risk-summary p {
+  margin: 7px 0 0;
+  color: #718198;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.risk-high {
+  color: #ef4444;
+}
+
+.risk-medium {
+  color: #eab308;
+}
+
+.risk-low {
+  color: #4dde91;
+}
+
+
+/* ================================
+   DIGITAL TWIN MAP
+================================ */
+
+.map-section {
+  position: relative;
+}
+
+.mine-map::after {
+  content: "DIGITAL TWIN • SIMULATION";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 11;
+
+  padding: 5px 8px;
+
+  border: 1px solid #30445f;
+  border-radius: 5px;
+
+  background: rgba(8, 14, 23, 0.82);
+
+  color: #71839b;
+  font-size: 7px;
+  letter-spacing: 0.7px;
+}
+
+
+/* ================================
+   IMPROVED FOG EFFECT
+================================ */
+
+.fog-zone {
+  backdrop-filter: blur(1px);
+}
+
+
+/* ================================
+   REROUTING VEHICLE
+================================ */
+
+.truck.rerouting .truck-icon {
+  filter: drop-shadow(
+    0 0 7px
+    rgba(91, 165, 255, 0.8)
+  );
+}
+
+
+/* ================================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 1200px) {
+  .weather-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 800px) {
+  .weather-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .communication-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .communication-card strong {
+    text-align: left;
+  }
+}
