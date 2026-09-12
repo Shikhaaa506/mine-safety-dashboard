@@ -1112,3 +1112,43 @@
     text-align: left;
   }
 }
+
+/* =========================================================
+   TARGETED DUMPER SAFETY WARNING
+   ========================================================= */
+
+.warning-beacon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  font-size: 28px;
+  animation: beaconPulse 0.6s infinite alternate;
+  pointer-events: none;
+}
+
+.danger-truck {
+  animation: dangerTruckPulse 0.6s infinite alternate;
+  z-index: 15;
+}
+
+@keyframes beaconPulse {
+  from {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.6;
+  }
+
+  to {
+    transform: translate(-50%, -50%) scale(1.25);
+    opacity: 1;
+  }
+}
+
+@keyframes dangerTruckPulse {
+  from {
+    filter: brightness(1);
+  }
+
+  to {
+    filter: brightness(1.8);
+  }
+}
